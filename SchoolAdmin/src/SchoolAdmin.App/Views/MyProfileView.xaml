@@ -1,0 +1,89 @@
+<UserControl x:Class="SchoolAdmin.App.Views.MyProfileView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes">
+    <UserControl.Resources>
+        <Style x:Key="Label" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+            <Setter Property="Margin" Value="0,0,24,10" />
+        </Style>
+        <Style x:Key="Value" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,0,0,10" />
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="900" HorizontalAlignment="Left">
+            <TextBlock Text="{Binding ErrorText}" Style="{StaticResource ErrorMessage}" Margin="0,0,0,12" />
+
+            <md:Card Style="{StaticResource PageCard}" Margin="0,0,0,20" DataContext="{Binding Student}">
+                <DockPanel>
+                    <md:PackIcon Kind="AccountCircle" Width="72" Height="72" Foreground="{StaticResource AccentBrush}"
+                                 DockPanel.Dock="Left" Margin="0,0,20,0" />
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding FullName}" FontSize="24" FontWeight="SemiBold" />
+                        <TextBlock Foreground="{StaticResource MutedBrush}" Margin="0,4,0,0">
+                            <Run Text="{Binding SchoolClass.DisplayName, Mode=OneWay}" />
+                            <Run Text="· Roll no" />
+                            <Run Text="{Binding RollNo, Mode=OneWay}" />
+                            <Run Text="· Admission no" />
+                            <Run Text="{Binding AdmissionNo, Mode=OneWay}" />
+                        </TextBlock>
+                    </StackPanel>
+                </DockPanel>
+            </md:Card>
+
+            <md:Card Style="{StaticResource PageCard}" Margin="0,0,0,20" DataContext="{Binding Student}">
+                <StackPanel>
+                    <TextBlock Text="My details" Style="{StaticResource FormTitle}" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition />
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="Date of birth" Style="{StaticResource Label}" />
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding DateOfBirth, StringFormat=dd-MM-yyyy}" Style="{StaticResource Value}" />
+                        <TextBlock Grid.Row="1" Text="Gender" Style="{StaticResource Label}" />
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Gender}" Style="{StaticResource Value}" />
+                        <TextBlock Grid.Row="2" Text="Guardian" Style="{StaticResource Label}" />
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding GuardianName}" Style="{StaticResource Value}" />
+                        <TextBlock Grid.Row="3" Text="Guardian phone" Style="{StaticResource Label}" />
+                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding GuardianPhone}" Style="{StaticResource Value}" />
+                        <TextBlock Grid.Row="4" Text="Address" Style="{StaticResource Label}" />
+                        <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Address}" Style="{StaticResource Value}" />
+                        <TextBlock Grid.Row="5" Text="Admission date" Style="{StaticResource Label}" />
+                        <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding AdmissionDate, StringFormat=dd-MM-yyyy}" Style="{StaticResource Value}" />
+                    </Grid>
+                </StackPanel>
+            </md:Card>
+
+            <UniformGrid Columns="2">
+                <md:Card Style="{StaticResource PageCard}" Margin="0,0,10,0">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <md:PackIcon Kind="CashMultiple" Foreground="{StaticResource AccentBrush}" />
+                            <TextBlock Text="Fee dues" FontWeight="SemiBold" Margin="8,0,0,0" />
+                        </StackPanel>
+                        <TextBlock Text="Your fee status and receipts will appear here." Margin="0,8,0,0"
+                                   Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </md:Card>
+                <md:Card Style="{StaticResource PageCard}" Margin="10,0,0,0">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <md:PackIcon Kind="ClipboardTextOutline" Foreground="{StaticResource AccentBrush}" />
+                            <TextBlock Text="Exam results" FontWeight="SemiBold" Margin="8,0,0,0" />
+                        </StackPanel>
+                        <TextBlock Text="Your marks, admit cards and report cards will appear here." Margin="0,8,0,0"
+                                   Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </md:Card>
+            </UniformGrid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

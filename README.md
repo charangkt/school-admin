@@ -1,69 +1,87 @@
-# Task Manager
+# School Admin
 
-A small full-stack task manager: **TypeScript** frontend, **PHP 8** REST API, **SQLite** storage, deployed with Docker on Render's free tier.
+An offline **School Administration Management System** for Windows. It runs on the school's local network with no internet connection.
 
-**Live demo:** _add Render URL here_
+Built with C# .NET 10 (WPF desktop app), SQL Server and Entity Framework Core.
 
 ## Features
 
-- Add, complete, and delete tasks
-- Filter by All / Active / Done
-- JSON REST API with validation and error handling
-- Light and dark mode
+| Module | Status |
+|---|---|
+| Secure login with role-based access (Admin, Accountant, Exam Staff, Teacher, Student) | ✅ |
+| Students: add, edit, search, filter by class | ✅ |
+| Staff records | ✅ |
+| Classes and subjects | ✅ |
+| User management and change password | ✅ |
+| Fees: fee heads, concessions, receipts, outstanding reports | 🔜 |
+| Exams: scheduling, grading, results dashboard, admit cards | 🔜 |
+| PDF / Excel export | 🔜 |
+| Windows installer | 🔜 |
 
 ## Tech stack
 
-| Layer    | Technology                      |
-| -------- | ------------------------------- |
-| Frontend | TypeScript (compiled with `tsc`), HTML, CSS |
-| Backend  | PHP 8.3 + Apache                |
-| Database | SQLite (via PDO)                |
-| Hosting  | Docker on Render (free plan)    |
+| Layer | Technology |
+|---|---|
+| Desktop UI | WPF (.NET 10), MaterialDesignInXaml, MVVM (CommunityToolkit.Mvvm) |
+| Database | SQL Server (LocalDB for development, SQL Server Express at the school) |
+| Data access | Entity Framework Core 10 (migrations create and upgrade the database automatically) |
+| Security | BCrypt password hashing, role-based menus |
 
 ## Project structure
 
 ```
-src/main.ts           TypeScript frontend source
-public/index.html     Page markup
-public/style.css      Styles
-public/api/tasks.php  REST API (GET, POST, PATCH, DELETE)
-public/api/health.php Health check endpoint
-public/api/db.php     Database connection + helpers
-Dockerfile            Builds TS, then serves with PHP/Apache
-render.yaml           Render deployment blueprint
+SchoolAdmin/
+├── SchoolAdmin.sln
+├── scripts/seed-demo.sql      Demo data (60 students, 12 staff, demo logins)
+└── src/
+    ├── SchoolAdmin.Data/      Entities, DbContext, migrations, login service
+    └── SchoolAdmin.App/       WPF app: Views (screens) and ViewModels (logic)
 ```
 
-## API
+## Run on a development PC
 
-| Method | Endpoint                | Body                  | Description        |
-| ------ | ----------------------- | --------------------- | ------------------ |
-| GET    | `/api/tasks.php`        |                       | List all tasks     |
-| GET    | `/api/tasks.php?id=1`   |                       | Get one task       |
-| POST   | `/api/tasks.php`        | `{"title": "..."}`    | Create a task      |
-| PATCH  | `/api/tasks.php?id=1`   | `{"done": true}`      | Update a task      |
-| DELETE | `/api/tasks.php?id=1`   |                       | Delete a task      |
-| GET    | `/api/health.php`       |                       | Health check       |
-
-## Run locally
-
-Requirements: Node.js 18+ and PHP 8.1+ with `pdo_sqlite`.
+Requirements: .NET 10 SDK and SQL Server LocalDB (installed with SQL Server Express or Visual Studio).
 
 ```bash
-npm install
-npm run dev        # compiles TypeScript and serves on http://localhost:8000
+cd SchoolAdmin
+dotnet run --project src/SchoolAdmin.App
 ```
 
-Or with Docker:
+On first start the app creates the `SchoolAdmin` database and a default admin login:
+
+- Username: `admin`
+- Password: `Admin@123` (change it from the key icon in the top bar)
+
+The database connection is set in `src/SchoolAdmin.App/appsettings.json`.
+
+## Demo data (optional)
+
+Start the app once so the tables exist, then run:
 
 ```bash
-docker build -t task-manager .
-docker run -p 8080:10000 task-manager   # http://localhost:8080
+sqlcmd -S "(localdb)\MSSQLLocalDB" -E -d SchoolAdmin -i scripts\seed-demo.sql
 ```
 
-## Deploy to Render
+This adds 14 classes, 6 subjects, 12 staff, 60 students and these demo logins:
 
-1. Push this repo to GitHub.
-2. In Render: **New → Blueprint**, select the repo. Render reads `render.yaml` and deploys on the free plan.
-3. Every push to `main` redeploys automatically.
+| Username | Password | Role |
+|---|---|---|
+| accountant | Accountant@123 | Accountant |
+| examstaff | Exam@123 | Exam Staff |
+| teacher | Teacher@123 | Teacher |
+| student | Student@123 | Student |
 
-> **Note:** On Render's free plan the service sleeps after 15 minutes of inactivity (the first request afterwards takes ~30–60 s), and the disk is ephemeral, so saved tasks reset when the service redeploys or restarts.
+> ⚠️ Never run the demo script on a real school database. The demo passwords are public.
+
+## Database changes (for developers)
+
+After changing an entity, add a migration, **then** build:
+
+```bash
+cd SchoolAdmin
+dotnet tool restore
+dotnet ef migrations add <Name> --project src/SchoolAdmin.Data --startup-project src/SchoolAdmin.Data --output-dir Migrations
+dotnet build
+```
+
+The app applies new migrations automatically on startup.

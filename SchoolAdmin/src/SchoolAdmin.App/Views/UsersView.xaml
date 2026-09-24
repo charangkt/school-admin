@@ -1,0 +1,71 @@
+<UserControl x:Class="SchoolAdmin.App.Views.UsersView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
+             DataContextChanged="OnDataContextChanged">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="380" />
+        </Grid.ColumnDefinitions>
+
+        <md:Card Style="{StaticResource PageCard}">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                    <Button DockPanel.Dock="Right" Command="{Binding NewCommand}">
+                        <StackPanel Orientation="Horizontal">
+                            <md:PackIcon Kind="Plus" VerticalAlignment="Center" />
+                            <TextBlock Text="NEW USER" Margin="6,0,0,0" />
+                        </StackPanel>
+                    </Button>
+                    <TextBlock Text="People who can log in to School Admin" VerticalAlignment="Center"
+                               Foreground="{StaticResource MutedBrush}" />
+                </DockPanel>
+
+                <DataGrid ItemsSource="{Binding Users}" SelectedItem="{Binding SelectedUser}" Style="{StaticResource ListGrid}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Username" Binding="{Binding Username}" />
+                        <DataGridTextColumn Header="Full name" Binding="{Binding FullName}" Width="*" />
+                        <DataGridTextColumn Header="Role" Binding="{Binding Role}" />
+                        <DataGridCheckBoxColumn Header="Active" Binding="{Binding IsActive}" />
+                        <DataGridTextColumn Header="Created" Binding="{Binding CreatedAt, StringFormat=dd-MM-yyyy}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </md:Card>
+
+        <md:Card Grid.Column="1" Margin="20,0,0,0" Style="{StaticResource PageCard}">
+            <StackPanel>
+                <TextBlock Text="{Binding FormTitle}" Style="{StaticResource FormTitle}" />
+                <TextBox Text="{Binding Username}" md:HintAssist.Hint="Username *" Style="{StaticResource FormTextBox}" />
+                <TextBox Text="{Binding FullName}" md:HintAssist.Hint="Full name *" Style="{StaticResource FormTextBox}" />
+                <ComboBox ItemsSource="{Binding Roles}" SelectedItem="{Binding Role}"
+                          md:HintAssist.Hint="Role *" Style="{StaticResource FormComboBox}" />
+                <ComboBox ItemsSource="{Binding StaffOptions}" SelectedValue="{Binding LinkedStaffId}"
+                          SelectedValuePath="Value" DisplayMemberPath="Label"
+                          md:HintAssist.Hint="Staff member *" Style="{StaticResource FormComboBox}"
+                          Visibility="{Binding IsTeacherRole, Converter={StaticResource BoolToVisibility}}" />
+                <ComboBox ItemsSource="{Binding StudentOptions}" SelectedValue="{Binding LinkedStudentId}"
+                          SelectedValuePath="Value" DisplayMemberPath="Label" IsTextSearchEnabled="True"
+                          md:HintAssist.Hint="Student *" Style="{StaticResource FormComboBox}"
+                          Visibility="{Binding IsStudentRole, Converter={StaticResource BoolToVisibility}}" />
+                <PasswordBox x:Name="PasswordInput" md:HintAssist.Hint="{Binding PasswordHint}"
+                             Style="{StaticResource FormPasswordBox}" />
+                <CheckBox Content="Active (can log in)" IsChecked="{Binding IsActive}" Margin="0,0,0,16" />
+
+                <Button Content="SAVE" Command="{Binding SaveCommand}" Width="120" HorizontalAlignment="Left" />
+                <TextBlock Text="{Binding InfoText}" Style="{StaticResource InfoMessage}" />
+                <TextBlock Text="{Binding ErrorText}" Style="{StaticResource ErrorMessage}" />
+
+                <TextBlock Margin="0,24,0,0" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}">
+                    <Run FontWeight="SemiBold" Text="Roles" /><LineBreak />
+                    <Run Text="Admin — everything." /><LineBreak />
+                    <Run Text="Accountant — fees and student list." /><LineBreak />
+                    <Run Text="Exam Staff — exams, marks and student list." /><LineBreak />
+                    <Run Text="Teacher — student list and marks (linked to a staff member)." /><LineBreak />
+                    <Run Text="Student — own profile, fees and results only." />
+                </TextBlock>
+            </StackPanel>
+        </md:Card>
+    </Grid>
+</UserControl>

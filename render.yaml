@@ -1,8 +1,0 @@
-services:
-  - type: web
-    name: task-manager
-    runtime: docker
-    plan: free
-    dockerfilePath: ./Dockerfile
-    healthCheckPath: /api/health.php
-    autoDeploy: true
