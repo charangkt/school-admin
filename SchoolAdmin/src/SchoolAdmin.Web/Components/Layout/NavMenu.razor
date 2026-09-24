@@ -1,0 +1,27 @@
+<MudNavMenu Class="mt-2">
+    <AuthorizeView Roles="Student">
+        <MudNavLink Href="my-profile" Icon="@Icons.Material.Filled.AccountCircle">My Profile</MudNavLink>
+    </AuthorizeView>
+
+    <AuthorizeView Roles="Admin,Accountant,ExamStaff,Teacher">
+        <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+        <MudNavLink Href="students" Icon="@Icons.Material.Filled.School">Students</MudNavLink>
+    </AuthorizeView>
+
+    <AuthorizeView Roles="Admin">
+        <MudNavLink Href="staff" Icon="@Icons.Material.Filled.Badge">Staff</MudNavLink>
+        <MudNavLink Href="classes" Icon="@Icons.Material.Filled.Class">Classes &amp; Subjects</MudNavLink>
+    </AuthorizeView>
+
+    <AuthorizeView Roles="Admin,Accountant">
+        <MudNavLink Href="fees" Icon="@Icons.Material.Filled.Payments">Fees</MudNavLink>
+    </AuthorizeView>
+
+    <AuthorizeView Roles="Admin,ExamStaff,Teacher">
+        <MudNavLink Href="exams" Icon="@Icons.Material.Filled.Assignment">Exams</MudNavLink>
+    </AuthorizeView>
+
+    <AuthorizeView Roles="Admin">
+        <MudNavLink Href="users" Icon="@Icons.Material.Filled.ManageAccounts">Users</MudNavLink>
+    </AuthorizeView>
+</MudNavMenu>

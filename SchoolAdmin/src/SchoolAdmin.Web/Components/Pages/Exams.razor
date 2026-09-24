@@ -1,0 +1,6 @@
+@page "/exams"
+@attribute [Authorize(Roles = "Admin,ExamStaff,Teacher")]
+
+<PageTitle>Exams · School Admin</PageTitle>
+<ComingSoon Title="Exams" Icon="@Icons.Material.Filled.Assignment"
+            Features="@(["Exam scheduling and timetable", "Marks entry by class and subject", "Automatic grading", "Result analysis dashboard", "One-click admit cards and report cards (PDF)"])" />

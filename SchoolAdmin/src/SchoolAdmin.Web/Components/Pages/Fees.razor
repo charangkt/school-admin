@@ -1,0 +1,6 @@
+@page "/fees"
+@attribute [Authorize(Roles = "Admin,Accountant")]
+
+<PageTitle>Fees · School Admin</PageTitle>
+<ComingSoon Title="Fees" Icon="@Icons.Material.Filled.Payments"
+            Features="@(["Configurable fee heads (tuition, transport, exam fee…)", "Fee structure per class", "Concessions and discounts", "Fee collection with printable receipts", "Outstanding dues report (PDF / Excel)"])" />

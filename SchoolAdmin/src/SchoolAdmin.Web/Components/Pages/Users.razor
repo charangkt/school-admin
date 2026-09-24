@@ -1,0 +1,232 @@
+@page "/users"
+@attribute [Authorize(Roles = "Admin")]
+@inject IDbContextFactory<SchoolDbContext> DbFactory
+@inject ISnackbar Snackbar
+
+<PageTitle>Users · School Admin</PageTitle>
+<MudText Typo="Typo.h5" Class="mb-4">Users</MudText>
+
+<MudGrid>
+    <MudItem xs="12" lg="8">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+                <MudText Color="Color.Secondary">People who can log in to School Admin</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="New">New user</MudButton>
+            </MudStack>
+
+            <MudTable T="User" Items="_users" Hover="true" Dense="true" Striped="true"
+                      OnRowClick="@(e => Edit(e.Item))" RowStyle="cursor:pointer">
+                <HeaderContent>
+                    <MudTh>Username</MudTh>
+                    <MudTh>Full name</MudTh>
+                    <MudTh>Role</MudTh>
+                    <MudTh>Linked to</MudTh>
+                    <MudTh>Status</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Username">@context.Username</MudTd>
+                    <MudTd DataLabel="Full name">@context.FullName</MudTd>
+                    <MudTd DataLabel="Role"><MudChip T="string" Size="Size.Small" Color="RoleColor(context.Role)">@context.Role.Label()</MudChip></MudTd>
+                    <MudTd DataLabel="Linked to">@(context.Staff?.FullName ?? context.Student?.FullName)</MudTd>
+                    <MudTd DataLabel="Status">@(context.IsActive ? "Active" : "Inactive")</MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" lg="4">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudText Typo="Typo.h6" Class="mb-3">@(_form.Id == 0 ? "New user" : "Edit user")</MudText>
+            <MudStack Spacing="3">
+                <MudTextField @bind-Value="_form.Username" Label="Username *" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudTextField @bind-Value="_form.FullName" Label="Full name *" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudSelect T="Role" @bind-Value="_form.Role" Label="Role *" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var role in Enum.GetValues<Role>())
+                    {
+                        <MudSelectItem T="Role" Value="role">@role.Label()</MudSelectItem>
+                    }
+                </MudSelect>
+
+                @if (_form.Role == Role.Teacher)
+                {
+                    <MudSelect T="int?" @bind-Value="_form.StaffId" Label="Staff member *" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach (var s in _staffOptions)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)s.Id)">@s.FullName (@s.EmployeeCode)</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                @if (_form.Role == Role.Student)
+                {
+                    <MudAutocomplete T="Student" Value="_selectedStudent" ValueChanged="OnStudentChosen" Label="Student *"
+                                     SearchFunc="SearchStudents" ToStringFunc="@(s => s is null ? "" : $"{s.FullName} ({s.AdmissionNo})")"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" ResetValueOnEmptyText="true" />
+                }
+
+                <MudTextField @bind-Value="_form.Password" InputType="InputType.Password" Variant="Variant.Outlined" Margin="Margin.Dense"
+                              Label="@(_form.Id == 0 ? "Password *" : "New password (leave blank to keep)")" />
+                <MudCheckBox T="bool" @bind-Value="_form.IsActive" Label="Active (can log in)" Color="Color.Primary" />
+            </MudStack>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save" Class="mt-4">Save</MudButton>
+
+            <MudDivider Class="my-4" />
+            <MudText Typo="Typo.subtitle2">Roles</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Admin: everything<br />
+                Accountant: fees and student list<br />
+                Exam Staff: exams, marks and student list<br />
+                Teacher: student list and marks (linked to a staff member)<br />
+                Student: own profile, fees and results only
+            </MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private const int MinPasswordLength = 6;
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    private List<User> _users = [];
+    private List<Staff> _staffOptions = [];
+    private List<Student> _studentOptions = [];
+    private Student? _selectedStudent;
+    private UserForm _form = new();
+    private int _currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _currentUserId = (await AuthState).User.UserId();
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _staffOptions = await db.Staff.AsNoTracking().Where(s => s.IsActive).OrderBy(s => s.FullName).ToListAsync();
+        _studentOptions = await db.Students.AsNoTracking().Where(s => s.IsActive).OrderBy(s => s.FirstName).ToListAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _users = await db.Users.AsNoTracking().Include(u => u.Staff).Include(u => u.Student)
+            .OrderBy(u => u.Role).ThenBy(u => u.Username).ToListAsync();
+    }
+
+    private static Color RoleColor(Role role) => role switch
+    {
+        Role.Admin => Color.Error,
+        Role.Accountant => Color.Success,
+        Role.ExamStaff => Color.Warning,
+        Role.Teacher => Color.Info,
+        _ => Color.Default,
+    };
+
+    private Task<IEnumerable<Student>> SearchStudents(string? text, CancellationToken _)
+    {
+        var results = string.IsNullOrWhiteSpace(text)
+            ? _studentOptions.Take(20)
+            : _studentOptions.Where(s => s.FullName.Contains(text, StringComparison.OrdinalIgnoreCase)
+                || s.AdmissionNo.Contains(text, StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(results);
+    }
+
+    private void OnStudentChosen(Student? student)
+    {
+        _selectedStudent = student;
+        _form.StudentId = student?.Id;
+    }
+
+    private void New()
+    {
+        _form = new UserForm();
+        _selectedStudent = null;
+    }
+
+    private void Edit(User? u)
+    {
+        if (u is null) return;
+        _form = new UserForm
+        {
+            Id = u.Id,
+            Username = u.Username,
+            FullName = u.FullName,
+            Role = u.Role,
+            StaffId = u.StaffId,
+            StudentId = u.StudentId,
+            IsActive = u.IsActive,
+        };
+        _selectedStudent = _studentOptions.FirstOrDefault(s => s.Id == u.StudentId);
+    }
+
+    private async Task Save()
+    {
+        string? problem =
+            string.IsNullOrWhiteSpace(_form.Username) || string.IsNullOrWhiteSpace(_form.FullName) ? "Username and full name are required."
+            : _form.Id == 0 && string.IsNullOrEmpty(_form.Password) ? "Enter a password for the new user."
+            : _form.Password.Length is > 0 and < MinPasswordLength ? $"Password must be at least {MinPasswordLength} characters."
+            : _form.Role == Role.Teacher && _form.StaffId is null ? "Choose which staff member this teacher login belongs to."
+            : _form.Role == Role.Student && _form.StudentId is null ? "Choose which student this login belongs to."
+            : _form.Id == _currentUserId && !_form.IsActive ? "You cannot deactivate your own account."
+            : null;
+        if (problem is not null)
+        {
+            Snackbar.Add(problem, Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            User user;
+            if (_form.Id == 0)
+            {
+                user = new User { Username = "", PasswordHash = "", FullName = "" };
+                db.Users.Add(user);
+            }
+            else
+            {
+                user = await db.Users.FindAsync(_form.Id) ?? throw new InvalidOperationException("This user no longer exists.");
+
+                // Never leave the system without an active admin.
+                var removesAdmin = user.Role == Role.Admin && user.IsActive && (_form.Role != Role.Admin || !_form.IsActive);
+                if (removesAdmin && !await db.Users.AnyAsync(u => u.Id != user.Id && u.Role == Role.Admin && u.IsActive))
+                {
+                    Snackbar.Add("This is the only active admin. Create another admin first.", Severity.Warning);
+                    return;
+                }
+            }
+
+            user.Username = _form.Username.Trim();
+            user.FullName = _form.FullName.Trim();
+            user.Role = _form.Role;
+            user.IsActive = _form.IsActive;
+            user.StaffId = _form.Role == Role.Teacher ? _form.StaffId : null;
+            user.StudentId = _form.Role == Role.Student ? _form.StudentId : null;
+            if (!string.IsNullOrEmpty(_form.Password))
+            {
+                user.PasswordHash = PasswordHasher.Hash(_form.Password);
+            }
+
+            await db.SaveChangesAsync();
+            _form.Id = user.Id;
+            _form.Password = "";
+            await LoadAsync();
+            Snackbar.Add($"Saved user {user.Username}.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(DbErrors.Describe(ex), Severity.Error);
+        }
+    }
+
+    private class UserForm
+    {
+        public int Id { get; set; }
+        public string Username { get; set; } = "";
+        public string FullName { get; set; } = "";
+        public Role Role { get; set; } = Role.Accountant;
+        public int? StaffId { get; set; }
+        public int? StudentId { get; set; }
+        public string Password { get; set; } = "";
+        public bool IsActive { get; set; } = true;
+    }
+}

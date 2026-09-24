@@ -1,5 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using SchoolAdmin.App.Services;
+using SchoolAdmin.Data.Services;
 
 namespace SchoolAdmin.App.ViewModels;
 

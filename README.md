@@ -1,8 +1,26 @@
 # School Admin
 
-An offline **School Administration Management System** for Windows. It runs on the school's local network with no internet connection.
+An offline **School Administration Management System**. It runs on the school's local network with no internet connection.
 
-Built with C# .NET 10 (WPF desktop app), SQL Server and Entity Framework Core.
+Built with C# .NET 10, SQL Server and Entity Framework Core, in two front ends that share one data layer:
+
+- **SchoolAdmin.Web**: Blazor web app (MudBlazor). Also deployed as an online demo on Render.
+- **SchoolAdmin.App**: WPF desktop app for Windows.
+
+## Online demo
+
+The web version is deployed to Render from this repo (`Dockerfile` + `render.yaml` at the root). The demo uses a throw-away SQLite database that is filled with sample data on every start, and the login page lists the demo accounts.
+
+On Render's free plan the site sleeps after 15 minutes without visitors; the first visit afterwards takes about a minute, and any changes made in the demo are reset.
+
+Run the web version locally:
+
+```bash
+cd SchoolAdmin
+dotnet run --project src/SchoolAdmin.Web
+```
+
+It uses SQLite with demo data by default (`appsettings.json`). For a school installation set `Database:Provider` to `SqlServer`, point `ConnectionStrings:SchoolDb` at their SQL Server Express, and set `DemoMode` to `false`.
 
 ## Features
 
@@ -34,7 +52,8 @@ SchoolAdmin/
 ├── SchoolAdmin.sln
 ├── scripts/seed-demo.sql      Demo data (60 students, 12 staff, demo logins)
 └── src/
-    ├── SchoolAdmin.Data/      Entities, DbContext, migrations, login service
+    ├── SchoolAdmin.Data/      Entities, DbContext, migrations, login, demo data
+    ├── SchoolAdmin.Web/       Blazor web app: Components/Pages (screens)
     └── SchoolAdmin.App/       WPF app: Views (screens) and ViewModels (logic)
 ```
 

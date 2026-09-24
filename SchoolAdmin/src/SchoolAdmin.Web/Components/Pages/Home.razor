@@ -1,0 +1,99 @@
+@page "/"
+@attribute [Authorize]
+@inject IDbContextFactory<SchoolDbContext> DbFactory
+@inject NavigationManager Navigation
+
+<PageTitle>Dashboard · School Admin</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-1">Welcome, @_name</MudText>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">Here is an overview of your school.</MudText>
+
+<MudGrid>
+    @foreach (var (label, value, icon, color) in _stats)
+    {
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Class="pa-5" Elevation="1">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                    <MudAvatar Color="color" Variant="Variant.Filled" Size="Size.Large">
+                        <MudIcon Icon="@icon" />
+                    </MudAvatar>
+                    <div>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@label</MudText>
+                        <MudText Typo="Typo.h4">@value</MudText>
+                    </div>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    }
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-5" Elevation="1">
+            <MudText Typo="Typo.h6" Class="mb-3">Students per class</MudText>
+            <MudSimpleTable Dense="true" Hover="true">
+                <thead><tr><th>Class</th><th>Boys</th><th>Girls</th><th>Total</th></tr></thead>
+                <tbody>
+                    @foreach (var row in _perClass)
+                    {
+                        <tr><td>@row.Class</td><td>@row.Boys</td><td>@row.Girls</td><td><b>@row.Total</b></td></tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-5" Elevation="1">
+            <MudText Typo="Typo.h6" Class="mb-3">Coming next</MudText>
+            <MudList T="string" Dense="true">
+                <MudListItem Icon="@Icons.Material.Filled.Payments" Text="Fees: fee heads, concessions, receipts, outstanding reports" />
+                <MudListItem Icon="@Icons.Material.Filled.Assignment" Text="Exams: schedule, marks, grading, results dashboard" />
+                <MudListItem Icon="@Icons.Material.Filled.Badge" Text="One-click admit card generation" />
+                <MudListItem Icon="@Icons.Material.Filled.PictureAsPdf" Text="PDF and Excel export for every report" />
+            </MudList>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    private string _name = "";
+    private List<(string Label, int Value, string Icon, Color Color)> _stats = [];
+    private List<(string Class, int Boys, int Girls, int Total)> _perClass = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthState).User;
+        if (user.IsInRole(nameof(Role.Student)))
+        {
+            Navigation.NavigateTo("my-profile");
+            return;
+        }
+
+        _name = user.FullName();
+
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _stats =
+        [
+            ("Students", await db.Students.CountAsync(s => s.IsActive), Icons.Material.Filled.School, Color.Primary),
+            ("Staff", await db.Staff.CountAsync(s => s.IsActive), Icons.Material.Filled.Badge, Color.Success),
+            ("Classes", await db.Classes.CountAsync(), Icons.Material.Filled.Class, Color.Warning),
+            ("Subjects", await db.Subjects.CountAsync(), Icons.Material.Filled.MenuBook, Color.Info),
+        ];
+
+        var counts = await db.Classes
+            .OrderBy(c => c.DisplayOrder).ThenBy(c => c.Section)
+            .Select(c => new
+            {
+                c.Name,
+                c.Section,
+                Boys = c.Students.Count(s => s.IsActive && s.Gender == "Male"),
+                Girls = c.Students.Count(s => s.IsActive && s.Gender == "Female"),
+                Total = c.Students.Count(s => s.IsActive),
+            })
+            .Where(c => c.Total > 0)
+            .ToListAsync();
+        _perClass = counts.Select(c => ($"{c.Name} - {c.Section}", c.Boys, c.Girls, c.Total)).ToList();
+    }
+}

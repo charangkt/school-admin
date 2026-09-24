@@ -1,0 +1,79 @@
+@page "/my-profile"
+@attribute [Authorize(Roles = "Student")]
+@inject IDbContextFactory<SchoolDbContext> DbFactory
+
+<PageTitle>My Profile · School Admin</PageTitle>
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Warning">@_error</MudAlert>
+}
+else if (_student is not null)
+{
+    <MudPaper Class="pa-6 mb-4" Elevation="1">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="4">
+            <MudAvatar Color="Color.Primary" Size="Size.Large" Style="width:72px;height:72px;font-size:2rem">
+                @_student.FirstName[0]
+            </MudAvatar>
+            <div>
+                <MudText Typo="Typo.h5">@_student.FullName</MudText>
+                <MudText Color="Color.Secondary">
+                    @_student.SchoolClass?.DisplayName · Roll no @_student.RollNo · Admission no @_student.AdmissionNo
+                </MudText>
+            </div>
+        </MudStack>
+    </MudPaper>
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-5" Elevation="1">
+                <MudText Typo="Typo.h6" Class="mb-3">My details</MudText>
+                <MudSimpleTable Dense="true" Bordered="false">
+                    <tbody>
+                        <tr><td>Date of birth</td><td><b>@_student.DateOfBirth?.ToString("dd-MM-yyyy")</b></td></tr>
+                        <tr><td>Gender</td><td><b>@_student.Gender</b></td></tr>
+                        <tr><td>Guardian</td><td><b>@_student.GuardianName</b></td></tr>
+                        <tr><td>Guardian phone</td><td><b>@_student.GuardianPhone</b></td></tr>
+                        <tr><td>Address</td><td><b>@_student.Address</b></td></tr>
+                        <tr><td>Admission date</td><td><b>@_student.AdmissionDate.ToString("dd-MM-yyyy")</b></td></tr>
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-5 mb-4" Elevation="1">
+                <MudStack Row="true" AlignItems="AlignItems.Center"><MudIcon Icon="@Icons.Material.Filled.Payments" Color="Color.Primary" /><MudText Typo="Typo.h6">Fee dues</MudText></MudStack>
+                <MudText Color="Color.Secondary" Class="mt-2">Your fee status and receipts will appear here.</MudText>
+            </MudPaper>
+            <MudPaper Class="pa-5" Elevation="1">
+                <MudStack Row="true" AlignItems="AlignItems.Center"><MudIcon Icon="@Icons.Material.Filled.Assignment" Color="Color.Primary" /><MudText Typo="Typo.h6">Exam results</MudText></MudStack>
+                <MudText Color="Color.Secondary" Class="mt-2">Your marks, admit cards and report cards will appear here.</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    private Student? _student;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var studentId = (await AuthState).User.StudentId();
+        if (studentId is null)
+        {
+            _error = "This login is not linked to a student record. Please contact the school office.";
+            return;
+        }
+
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _student = await db.Students.AsNoTracking().Include(s => s.SchoolClass).SingleOrDefaultAsync(s => s.Id == studentId);
+        if (_student is null)
+        {
+            _error = "Your student record was not found. Please contact the school office.";
+        }
+    }
+}

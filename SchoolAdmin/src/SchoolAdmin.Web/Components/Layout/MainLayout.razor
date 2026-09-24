@@ -1,0 +1,63 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+
+<MudThemeProvider Theme="_theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1" Color="Color.Primary">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                       OnClick="() => _drawerOpen = !_drawerOpen" />
+        <MudIcon Icon="@Icons.Material.Filled.School" Class="mx-2" />
+        <MudText Typo="Typo.h6">School Admin</MudText>
+        <MudSpacer />
+        <AuthorizeView>
+            <MudText Typo="Typo.body2" Class="mr-2 d-none d-sm-flex">
+                @context.User.FullName() · @context.User.RoleLabel()
+            </MudText>
+            <MudTooltip Text="Change password">
+                <MudIconButton Icon="@Icons.Material.Filled.Key" Color="Color.Inherit" Href="change-password" />
+            </MudTooltip>
+            <MudTooltip Text="Log out">
+                <MudIconButton Icon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="Logout" />
+            </MudTooltip>
+        </AuthorizeView>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="1" Variant="@DrawerVariant.Responsive">
+        <NavMenu />
+    </MudDrawer>
+
+    <MudMainContent Class="pt-16">
+        <MudContainer MaxWidth="MaxWidth.ExtraExtraLarge" Class="py-6">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    private bool _drawerOpen = true;
+
+    private readonly MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#3F51B5",
+            Secondary = "#FFC107",
+            AppbarBackground = "#1E2A4A",
+            Background = "#F4F5F7",
+            DrawerBackground = "#FFFFFF",
+        },
+    };
+
+    // Logout is a server endpoint, so leave the Blazor app with a full page load.
+    private void Logout() => Navigation.NavigateTo("account/logout", forceLoad: true);
+}

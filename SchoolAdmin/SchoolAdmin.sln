@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchoolAdmin.Data", "src\Sch
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchoolAdmin.App", "src\SchoolAdmin.App\SchoolAdmin.App.csproj", "{4762B006-26C7-4DFC-A9BC-7B82954C4411}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchoolAdmin.Web", "src\SchoolAdmin.Web\SchoolAdmin.Web.csproj", "{F2BF3F24-9F04-451D-86FF-3F453A1A057B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,6 +45,18 @@ Global
 		{4762B006-26C7-4DFC-A9BC-7B82954C4411}.Release|x64.Build.0 = Release|Any CPU
 		{4762B006-26C7-4DFC-A9BC-7B82954C4411}.Release|x86.ActiveCfg = Release|Any CPU
 		{4762B006-26C7-4DFC-A9BC-7B82954C4411}.Release|x86.Build.0 = Release|Any CPU
+		{F2BF3F24-9F04-451D-86FF-3F453A1A057B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F2BF3F24-9F04-451D-86FF-3F453A1A057B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F2BF3F24-9F04-451D-86FF-3F453A1A057B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F2BF3F24-9F04-451D-86FF-3F453A1A057B}.Debug|x64.Build.0 = Debug|Any CPU
+		{F2BF3F24-9F04-451D-86FF-3F453A1A057B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F2BF3F24-9F04-451D-86FF-3F453A1A057B}.Debug|x86.Build.0 = Debug|Any CPU
+		{F2BF3F24-9F04-451D-86FF-3F453A1A057B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F2BF3F24-9F04-451D-86FF-3F453A1A057B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F2BF3F24-9F04-451D-86FF-3F453A1A057B}.Release|x64.ActiveCfg = Release|Any CPU
+		{F2BF3F24-9F04-451D-86FF-3F453A1A057B}.Release|x64.Build.0 = Release|Any CPU
+		{F2BF3F24-9F04-451D-86FF-3F453A1A057B}.Release|x86.ActiveCfg = Release|Any CPU
+		{F2BF3F24-9F04-451D-86FF-3F453A1A057B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -50,5 +64,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{B613A088-180B-4DB9-9BD8-9D3BC079C35C} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{4762B006-26C7-4DFC-A9BC-7B82954C4411} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{F2BF3F24-9F04-451D-86FF-3F453A1A057B} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

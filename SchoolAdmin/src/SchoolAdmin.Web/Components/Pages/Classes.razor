@@ -1,0 +1,259 @@
+@page "/classes"
+@attribute [Authorize(Roles = "Admin")]
+@inject IDbContextFactory<SchoolDbContext> DbFactory
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<PageTitle>Classes &amp; Subjects · School Admin</PageTitle>
+<MudText Typo="Typo.h5" Class="mb-4">Classes &amp; Subjects</MudText>
+
+<MudGrid>
+    <!-- Classes -->
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+                <MudText Typo="Typo.h6">Classes</MudText>
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="AddStandardClasses">Add LKG – Class 12</MudButton>
+            </MudStack>
+
+            <MudTable T="SchoolClass" Items="_classes" Hover="true" Dense="true" Height="360px" FixedHeader="true"
+                      OnRowClick="@(e => EditClass(e.Item))" RowStyle="cursor:pointer">
+                <HeaderContent>
+                    <MudTh>Order</MudTh>
+                    <MudTh>Class</MudTh>
+                    <MudTh>Section</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.DisplayOrder</MudTd>
+                    <MudTd>@context.Name</MudTd>
+                    <MudTd>@context.Section</MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <MudGrid Spacing="2" Class="mt-3">
+                <MudItem xs="6"><MudTextField @bind-Value="_class.Name" Label="Class name *" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                <MudItem xs="3"><MudTextField @bind-Value="_class.Section" Label="Section *" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                <MudItem xs="3"><MudNumericField T="int?" @bind-Value="_class.Order" Label="Order" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+            </MudGrid>
+            <MudStack Row="true" Class="mt-3">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveClass">@(_class.Id == 0 ? "Add class" : "Save class")</MudButton>
+                <MudButton Variant="Variant.Text" OnClick="() => _class = new()">New</MudButton>
+                @if (_class.Id != 0)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteClass">Delete</MudButton>
+                }
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <!-- Subjects -->
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudText Typo="Typo.h6" Class="mb-2">Subjects</MudText>
+
+            <MudTable T="Subject" Items="_subjects" Hover="true" Dense="true" Height="360px" FixedHeader="true"
+                      OnRowClick="@(e => EditSubject(e.Item))" RowStyle="cursor:pointer">
+                <HeaderContent>
+                    <MudTh>Order</MudTh>
+                    <MudTh>Subject</MudTh>
+                    <MudTh>Code</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.DisplayOrder</MudTd>
+                    <MudTd>@context.Name</MudTd>
+                    <MudTd>@context.Code</MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <MudGrid Spacing="2" Class="mt-3">
+                <MudItem xs="6"><MudTextField @bind-Value="_subject.Name" Label="Subject name *" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                <MudItem xs="3"><MudTextField @bind-Value="_subject.Code" Label="Code" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                <MudItem xs="3"><MudNumericField T="int?" @bind-Value="_subject.Order" Label="Order" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+            </MudGrid>
+            <MudStack Row="true" Class="mt-3">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveSubject">@(_subject.Id == 0 ? "Add subject" : "Save subject")</MudButton>
+                <MudButton Variant="Variant.Text" OnClick="() => _subject = new()">New</MudButton>
+                @if (_subject.Id != 0)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteSubject">Delete</MudButton>
+                }
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private List<SchoolClass> _classes = [];
+    private List<Subject> _subjects = [];
+    private ItemForm _class = new() { Section = "A" };
+    private ItemForm _subject = new();
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _classes = await db.Classes.AsNoTracking().OrderBy(c => c.DisplayOrder).ThenBy(c => c.Section).ToListAsync();
+        _subjects = await db.Subjects.AsNoTracking().OrderBy(s => s.DisplayOrder).ThenBy(s => s.Name).ToListAsync();
+    }
+
+    // ---------- Classes ----------
+
+    private void EditClass(SchoolClass? c)
+    {
+        if (c is null) return;
+        _class = new ItemForm { Id = c.Id, Name = c.Name, Section = c.Section, Order = c.DisplayOrder };
+    }
+
+    private async Task SaveClass()
+    {
+        if (string.IsNullOrWhiteSpace(_class.Name) || string.IsNullOrWhiteSpace(_class.Section))
+        {
+            Snackbar.Add("Class name and section are required.", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            SchoolClass entity;
+            if (_class.Id == 0)
+            {
+                entity = new SchoolClass { Name = "" };
+                db.Classes.Add(entity);
+            }
+            else
+            {
+                entity = await db.Classes.FindAsync(_class.Id) ?? throw new InvalidOperationException("This class no longer exists.");
+            }
+
+            entity.Name = _class.Name.Trim();
+            entity.Section = _class.Section.Trim().ToUpperInvariant();
+            entity.DisplayOrder = _class.Order ?? (await db.Classes.MaxAsync(c => (int?)c.DisplayOrder) ?? 0) + 1;
+
+            await db.SaveChangesAsync();
+            Snackbar.Add($"Saved {entity.DisplayName}.", Severity.Success);
+            _class = new ItemForm { Section = "A" };
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(DbErrors.Describe(ex), Severity.Error);
+        }
+    }
+
+    private async Task DeleteClass()
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"Delete class {_class.Name} - {_class.Section}?")) return;
+
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            if (await db.Students.AnyAsync(s => s.SchoolClassId == _class.Id))
+            {
+                Snackbar.Add("This class has students. Move them to another class first.", Severity.Warning);
+                return;
+            }
+
+            await db.Classes.Where(c => c.Id == _class.Id).ExecuteDeleteAsync();
+            _class = new ItemForm { Section = "A" };
+            await LoadAsync();
+            Snackbar.Add("Class deleted.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(DbErrors.Describe(ex), Severity.Error);
+        }
+    }
+
+    private async Task AddStandardClasses()
+    {
+        string[] names = ["LKG", "UKG", .. Enumerable.Range(1, 12).Select(n => $"Class {n}")];
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var existing = await db.Classes.Where(c => c.Section == "A").Select(c => c.Name).ToListAsync();
+        var added = 0;
+        for (var i = 0; i < names.Length; i++)
+        {
+            if (existing.Contains(names[i], StringComparer.OrdinalIgnoreCase)) continue;
+            db.Classes.Add(new SchoolClass { Name = names[i], Section = "A", DisplayOrder = i + 1 });
+            added++;
+        }
+
+        await db.SaveChangesAsync();
+        await LoadAsync();
+        Snackbar.Add(added == 0 ? "Standard classes already exist." : $"Added {added} classes.", Severity.Info);
+    }
+
+    // ---------- Subjects ----------
+
+    private void EditSubject(Subject? s)
+    {
+        if (s is null) return;
+        _subject = new ItemForm { Id = s.Id, Name = s.Name, Code = s.Code, Order = s.DisplayOrder };
+    }
+
+    private async Task SaveSubject()
+    {
+        if (string.IsNullOrWhiteSpace(_subject.Name))
+        {
+            Snackbar.Add("Subject name is required.", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            Subject entity;
+            if (_subject.Id == 0)
+            {
+                entity = new Subject { Name = "" };
+                db.Subjects.Add(entity);
+            }
+            else
+            {
+                entity = await db.Subjects.FindAsync(_subject.Id) ?? throw new InvalidOperationException("This subject no longer exists.");
+            }
+
+            entity.Name = _subject.Name.Trim();
+            entity.Code = _subject.Code.Trim().ToUpperInvariant();
+            entity.DisplayOrder = _subject.Order ?? (await db.Subjects.MaxAsync(s => (int?)s.DisplayOrder) ?? 0) + 1;
+
+            await db.SaveChangesAsync();
+            Snackbar.Add($"Saved {entity.Name}.", Severity.Success);
+            _subject = new ItemForm();
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(DbErrors.Describe(ex), Severity.Error);
+        }
+    }
+
+    private async Task DeleteSubject()
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"Delete subject {_subject.Name}?")) return;
+
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            await db.Subjects.Where(s => s.Id == _subject.Id).ExecuteDeleteAsync();
+            _subject = new ItemForm();
+            await LoadAsync();
+            Snackbar.Add("Subject deleted.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(DbErrors.Describe(ex), Severity.Error);
+        }
+    }
+
+    /// <summary>Shared form for a class (Name/Section) or a subject (Name/Code).</summary>
+    private class ItemForm
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public string Section { get; set; } = "";
+        public string Code { get; set; } = "";
+        public int? Order { get; set; }
+    }
+}

@@ -15,7 +15,16 @@ public static class DbInitializer
     /// </summary>
     public static async Task InitializeAsync(SchoolDbContext db)
     {
-        await db.Database.MigrateAsync();
+        // Migrations are written for SQL Server. The SQLite demo database is
+        // throw-away, so it is simply created from the current model.
+        if (db.Database.IsSqlServer())
+        {
+            await db.Database.MigrateAsync();
+        }
+        else
+        {
+            await db.Database.EnsureCreatedAsync();
+        }
 
         if (!await db.Users.AnyAsync())
         {

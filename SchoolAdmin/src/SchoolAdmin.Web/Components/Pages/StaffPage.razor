@@ -1,0 +1,182 @@
+@page "/staff"
+@attribute [Authorize(Roles = "Admin")]
+@inject IDbContextFactory<SchoolDbContext> DbFactory
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<PageTitle>Staff · School Admin</PageTitle>
+<MudText Typo="Typo.h5" Class="mb-4">Staff</MudText>
+
+<MudGrid>
+    <MudItem xs="12" lg="8">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                <MudTextField T="string" Value="_search" ValueChanged="OnSearchChanged" Immediate="true" DebounceInterval="300"
+                              Placeholder="Search name, code, designation, phone" Variant="Variant.Outlined" Margin="Margin.Dense"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="New">New</MudButton>
+            </MudStack>
+
+            <MudTable T="Staff" Items="_staff" Hover="true" Dense="true" Striped="true" RowsPerPage="15"
+                      OnRowClick="@(e => Edit(e.Item))" RowStyle="cursor:pointer">
+                <HeaderContent>
+                    <MudTh>Code</MudTh>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Designation</MudTh>
+                    <MudTh>Phone</MudTh>
+                    <MudTh>Joined</MudTh>
+                    <MudTh>Status</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Code">@context.EmployeeCode</MudTd>
+                    <MudTd DataLabel="Name">@context.FullName</MudTd>
+                    <MudTd DataLabel="Designation">@context.Designation</MudTd>
+                    <MudTd DataLabel="Phone">@context.Phone</MudTd>
+                    <MudTd DataLabel="Joined">@context.JoiningDate.ToString("dd-MM-yyyy")</MudTd>
+                    <MudTd DataLabel="Status">@(context.IsActive ? "Active" : "Inactive")</MudTd>
+                </RowTemplate>
+                <NoRecordsContent><MudText>No staff found.</MudText></NoRecordsContent>
+                <PagerContent><MudTablePager /></PagerContent>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" lg="4">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudText Typo="Typo.h6" Class="mb-3">@(_form.Id == 0 ? "New staff member" : "Edit staff member")</MudText>
+            <MudStack Spacing="3">
+                <MudTextField @bind-Value="_form.EmployeeCode" Label="Employee code *" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudTextField @bind-Value="_form.FullName" Label="Full name *" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudTextField @bind-Value="_form.Designation" Label="Designation (e.g. Teacher, Clerk)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudTextField @bind-Value="_form.Phone" Label="Phone" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudTextField @bind-Value="_form.Email" Label="Email" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudDatePicker @bind-Date="_form.JoiningDate" Label="Joining date" DateFormat="dd-MM-yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudCheckBox T="bool" @bind-Value="_form.IsActive" Label="Active" Color="Color.Primary" />
+            </MudStack>
+            <MudStack Row="true" Class="mt-4">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save">Save</MudButton>
+                @if (_form.Id != 0)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="Delete">Delete</MudButton>
+                }
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string _search = "";
+    private List<Staff> _staff = [];
+    private StaffForm _form = new();
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var query = db.Staff.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(_search))
+        {
+            var term = _search.Trim();
+            query = query.Where(s => s.EmployeeCode.Contains(term) || s.FullName.Contains(term)
+                || s.Designation.Contains(term) || s.Phone.Contains(term));
+        }
+        _staff = await query.OrderBy(s => s.EmployeeCode).ToListAsync();
+    }
+
+    private async Task OnSearchChanged(string value)
+    {
+        _search = value;
+        await LoadAsync();
+    }
+
+    private void New() => _form = new StaffForm();
+
+    private void Edit(Staff? s)
+    {
+        if (s is null) return;
+        _form = new StaffForm
+        {
+            Id = s.Id,
+            EmployeeCode = s.EmployeeCode,
+            FullName = s.FullName,
+            Designation = s.Designation,
+            Phone = s.Phone,
+            Email = s.Email,
+            JoiningDate = s.JoiningDate.ToDateTime(TimeOnly.MinValue),
+            IsActive = s.IsActive,
+        };
+    }
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(_form.EmployeeCode) || string.IsNullOrWhiteSpace(_form.FullName))
+        {
+            Snackbar.Add("Employee code and full name are required.", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            Staff staff;
+            if (_form.Id == 0)
+            {
+                staff = new Staff { EmployeeCode = "", FullName = "" };
+                db.Staff.Add(staff);
+            }
+            else
+            {
+                staff = await db.Staff.FindAsync(_form.Id)
+                    ?? throw new InvalidOperationException("This staff member no longer exists.");
+            }
+
+            staff.EmployeeCode = _form.EmployeeCode.Trim();
+            staff.FullName = _form.FullName.Trim();
+            staff.Designation = _form.Designation.Trim();
+            staff.Phone = _form.Phone.Trim();
+            staff.Email = _form.Email.Trim();
+            staff.JoiningDate = DateOnly.FromDateTime(_form.JoiningDate ?? DateTime.Today);
+            staff.IsActive = _form.IsActive;
+
+            await db.SaveChangesAsync();
+            _form.Id = staff.Id;
+            await LoadAsync();
+            Snackbar.Add($"Saved {staff.FullName}.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(DbErrors.Describe(ex), Severity.Error);
+        }
+    }
+
+    private async Task Delete()
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"Delete staff member {_form.FullName}? This cannot be undone.")) return;
+
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            await db.Staff.Where(s => s.Id == _form.Id).ExecuteDeleteAsync();
+            New();
+            await LoadAsync();
+            Snackbar.Add("Staff member deleted.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(DbErrors.Describe(ex), Severity.Error);
+        }
+    }
+
+    private class StaffForm
+    {
+        public int Id { get; set; }
+        public string EmployeeCode { get; set; } = "";
+        public string FullName { get; set; } = "";
+        public string Designation { get; set; } = "";
+        public string Phone { get; set; } = "";
+        public string Email { get; set; } = "";
+        public DateTime? JoiningDate { get; set; } = DateTime.Today;
+        public bool IsActive { get; set; } = true;
+    }
+}

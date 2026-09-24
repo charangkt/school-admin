@@ -1,0 +1,283 @@
+@page "/students"
+@attribute [Authorize(Roles = "Admin,Accountant,ExamStaff,Teacher")]
+@inject IDbContextFactory<SchoolDbContext> DbFactory
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<PageTitle>Students · School Admin</PageTitle>
+<MudText Typo="Typo.h5" Class="mb-4">Students</MudText>
+
+<MudGrid>
+    <MudItem xs="12" lg="@(_canEdit ? 8 : 12)">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudGrid Spacing="2" Class="mb-2">
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Value="_search" ValueChanged="OnSearchChanged" Immediate="true" DebounceInterval="300"
+                                  Placeholder="Search name, admission no, phone" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+                </MudItem>
+                <MudItem xs="8" sm="3">
+                    <MudSelect T="int?" Value="_classFilter" ValueChanged="OnClassFilterChanged" Label="Class"
+                               Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelectItem T="int?" Value="@((int?)null)">All classes</MudSelectItem>
+                        @foreach (var c in _classes)
+                        {
+                            <MudSelectItem T="int?" Value="@((int?)c.Id)">@c.DisplayName</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                @if (_canEdit)
+                {
+                    <MudItem xs="4" sm="3" Class="d-flex align-center justify-end">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="New">New</MudButton>
+                    </MudItem>
+                }
+            </MudGrid>
+
+            <MudTable T="Student" Items="_students" Hover="true" Dense="true" Striped="true" RowsPerPage="15"
+                      OnRowClick="@(e => Edit(e.Item))" RowStyle="cursor:pointer" Loading="_loading">
+                <HeaderContent>
+                    <MudTh>Adm. No</MudTh>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Class</MudTh>
+                    <MudTh>Roll</MudTh>
+                    <MudTh>Guardian</MudTh>
+                    <MudTh>Phone</MudTh>
+                    <MudTh>Status</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Adm. No">@context.AdmissionNo</MudTd>
+                    <MudTd DataLabel="Name">@context.FullName</MudTd>
+                    <MudTd DataLabel="Class">@context.SchoolClass?.DisplayName</MudTd>
+                    <MudTd DataLabel="Roll">@context.RollNo</MudTd>
+                    <MudTd DataLabel="Guardian">@context.GuardianName</MudTd>
+                    <MudTd DataLabel="Phone">@context.GuardianPhone</MudTd>
+                    <MudTd DataLabel="Status">
+                        @if (context.IsActive)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">Active</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">Inactive</MudChip>
+                        }
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent><MudText>No students found.</MudText></NoRecordsContent>
+                <PagerContent><MudTablePager /></PagerContent>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+
+    @if (_canEdit)
+    {
+        <MudItem xs="12" lg="4">
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.h6" Class="mb-3">@(_form.Id == 0 ? "New student" : "Edit student")</MudText>
+                <MudTextField @bind-Value="_form.AdmissionNo" Label="Admission no *" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
+                <MudGrid Spacing="2">
+                    <MudItem xs="6"><MudTextField @bind-Value="_form.FirstName" Label="First name *" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                    <MudItem xs="6"><MudTextField @bind-Value="_form.LastName" Label="Last name" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                    <MudItem xs="8">
+                        <MudSelect T="int?" @bind-Value="_form.ClassId" Label="Class *" Variant="Variant.Outlined" Margin="Margin.Dense">
+                            @foreach (var c in _classes)
+                            {
+                                <MudSelectItem T="int?" Value="@((int?)c.Id)">@c.DisplayName</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="4"><MudNumericField T="int?" @bind-Value="_form.RollNo" Label="Roll no" Variant="Variant.Outlined" Margin="Margin.Dense" Min="1" /></MudItem>
+                    <MudItem xs="6">
+                        <MudSelect T="string" @bind-Value="_form.Gender" Label="Gender" Variant="Variant.Outlined" Margin="Margin.Dense">
+                            <MudSelectItem T="string" Value="@("Male")">Male</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Female")">Female</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Other")">Other</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="6"><MudDatePicker @bind-Date="_form.DateOfBirth" Label="Date of birth" DateFormat="dd-MM-yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                    <MudItem xs="12"><MudTextField @bind-Value="_form.GuardianName" Label="Guardian name" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                    <MudItem xs="12"><MudTextField @bind-Value="_form.GuardianPhone" Label="Guardian phone" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                    <MudItem xs="12"><MudTextField @bind-Value="_form.Address" Label="Address" Lines="2" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                    <MudItem xs="6"><MudDatePicker @bind-Date="_form.AdmissionDate" Label="Admission date" DateFormat="dd-MM-yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                    <MudItem xs="6" Class="d-flex align-center"><MudCheckBox T="bool" @bind-Value="_form.IsActive" Label="Active" Color="Color.Primary" /></MudItem>
+                </MudGrid>
+                <MudStack Row="true" Class="mt-4">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save" Disabled="_saving">Save</MudButton>
+                    @if (_form.Id != 0)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="Delete">Delete</MudButton>
+                    }
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    }
+</MudGrid>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    private bool _canEdit;
+    private bool _loading = true;
+    private bool _saving;
+    private string _search = "";
+    private int? _classFilter;
+    private List<SchoolClass> _classes = [];
+    private List<Student> _students = [];
+    private StudentForm _form = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _canEdit = (await AuthState).User.IsInRole(nameof(Role.Admin));
+        await using var db = await DbFactory.CreateDbContextAsync();
+        _classes = await db.Classes.AsNoTracking().OrderBy(c => c.DisplayOrder).ThenBy(c => c.Section).ToListAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        await using var db = await DbFactory.CreateDbContextAsync();
+        var query = db.Students.AsNoTracking().Include(s => s.SchoolClass).AsQueryable();
+
+        if (_classFilter is int classId)
+        {
+            query = query.Where(s => s.SchoolClassId == classId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(_search))
+        {
+            var term = _search.Trim();
+            query = query.Where(s => s.AdmissionNo.Contains(term) || s.FirstName.Contains(term)
+                || s.LastName.Contains(term) || s.GuardianPhone.Contains(term));
+        }
+
+        _students = await query
+            .OrderBy(s => s.SchoolClass!.DisplayOrder).ThenBy(s => s.SchoolClass!.Section)
+            .ThenBy(s => s.RollNo).ThenBy(s => s.FirstName)
+            .ToListAsync();
+        _loading = false;
+    }
+
+    private async Task OnSearchChanged(string value)
+    {
+        _search = value;
+        await LoadAsync();
+    }
+
+    private async Task OnClassFilterChanged(int? value)
+    {
+        _classFilter = value;
+        await LoadAsync();
+    }
+
+    private void New() => _form = new StudentForm { ClassId = _classFilter };
+
+    private void Edit(Student? s)
+    {
+        if (s is null || !_canEdit) return;
+        _form = new StudentForm
+        {
+            Id = s.Id,
+            AdmissionNo = s.AdmissionNo,
+            FirstName = s.FirstName,
+            LastName = s.LastName,
+            ClassId = s.SchoolClassId,
+            RollNo = s.RollNo,
+            Gender = s.Gender,
+            DateOfBirth = s.DateOfBirth?.ToDateTime(TimeOnly.MinValue),
+            GuardianName = s.GuardianName,
+            GuardianPhone = s.GuardianPhone,
+            Address = s.Address,
+            AdmissionDate = s.AdmissionDate.ToDateTime(TimeOnly.MinValue),
+            IsActive = s.IsActive,
+        };
+    }
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(_form.AdmissionNo) || string.IsNullOrWhiteSpace(_form.FirstName) || _form.ClassId is null)
+        {
+            Snackbar.Add("Admission no, first name and class are required.", Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            Student student;
+            if (_form.Id == 0)
+            {
+                student = new Student { AdmissionNo = "", FirstName = "" };
+                db.Students.Add(student);
+            }
+            else
+            {
+                student = await db.Students.FindAsync(_form.Id)
+                    ?? throw new InvalidOperationException("This student no longer exists.");
+            }
+
+            student.AdmissionNo = _form.AdmissionNo.Trim();
+            student.FirstName = _form.FirstName.Trim();
+            student.LastName = _form.LastName.Trim();
+            student.SchoolClassId = _form.ClassId.Value;
+            student.RollNo = _form.RollNo;
+            student.Gender = _form.Gender;
+            student.DateOfBirth = _form.DateOfBirth is DateTime dob ? DateOnly.FromDateTime(dob) : null;
+            student.GuardianName = _form.GuardianName.Trim();
+            student.GuardianPhone = _form.GuardianPhone.Trim();
+            student.Address = _form.Address.Trim();
+            student.AdmissionDate = DateOnly.FromDateTime(_form.AdmissionDate ?? DateTime.Today);
+            student.IsActive = _form.IsActive;
+
+            await db.SaveChangesAsync();
+            _form.Id = student.Id;
+            await LoadAsync();
+            Snackbar.Add($"Saved {student.FullName}.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(DbErrors.Describe(ex), Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task Delete()
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"Delete student {_form.FirstName} {_form.LastName}? This cannot be undone.")) return;
+
+        try
+        {
+            await using var db = await DbFactory.CreateDbContextAsync();
+            await db.Students.Where(s => s.Id == _form.Id).ExecuteDeleteAsync();
+            New();
+            await LoadAsync();
+            Snackbar.Add("Student deleted.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(DbErrors.Describe(ex), Severity.Error);
+        }
+    }
+
+    private class StudentForm
+    {
+        public int Id { get; set; }
+        public string AdmissionNo { get; set; } = "";
+        public string FirstName { get; set; } = "";
+        public string LastName { get; set; } = "";
+        public int? ClassId { get; set; }
+        public int? RollNo { get; set; }
+        public string Gender { get; set; } = "";
+        public DateTime? DateOfBirth { get; set; }
+        public string GuardianName { get; set; } = "";
+        public string GuardianPhone { get; set; } = "";
+        public string Address { get; set; } = "";
+        public DateTime? AdmissionDate { get; set; } = DateTime.Today;
+        public bool IsActive { get; set; } = true;
+    }
+}
